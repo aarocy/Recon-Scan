@@ -1,5 +1,8 @@
 # Recon-Scan
 
+<img width="1366" height="768" alt="image" src="https://github.com/user-attachments/assets/9d0903cd-37f5-4885-9f6e-d8a12eaaeeaf" />
+
+
 ReconScan is an open-source passive recon API + frontend for security testing and learning.
 
 The project now runs without Supabase, UUID-based user identity, or Stripe dependencies. It uses local SQLite by default so anyone can test it for free.
