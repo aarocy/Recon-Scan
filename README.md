@@ -1,4 +1,4 @@
-# ReconScan
+# Recon-Scan
 
 ReconScan is an open-source passive recon API + frontend for security testing and learning.
 
