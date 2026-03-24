@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>ReconScan · Passive  AI Recon</title>
+  <!-- Syne + JetBrains Mono -->
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: #060606;
+      font-family: 'JetBrains Mono', monospace;
+      color: #e5e5e5;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .noise-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 999;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='1' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 180px;
+      mix-blend-mode: overlay;
+      opacity: 0.4;
+    }
+
+    .glass {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 4px 12px rgba(0, 0, 0, 0.2);
+      transition: transform 0.2s ease, border-color 0.2s;
+    }
+
+    .glass-card:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .glass-nav {
+      background: rgba(255, 255, 255, 0.02);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .btn-glass {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 0.5rem 1.25rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 500;
+      font-size: 0.85rem;
+      color: white;
+      cursor: pointer;
+      transition: all 0.2s;
+      backdrop-filter: blur(4px);
+      background: rgba(255, 255, 255, 0.02);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-glass:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-solid-white {
+      background: white;
+      border: none;
+      border-radius: 8px;
+      padding: 0.75rem 1.5rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #060606;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+
+    .btn-solid-white:hover {
+      background: #eaeaea;
+      transform: scale(0.98);
+    }
+
+    .glass-input {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      color: white;
+      width: 100%;
+      transition: all 0.2s;
+    }
+
+    .glass-input:focus {
+      outline: none;
+      border-color: rgba(255, 255, 255, 0.7);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.02);
+      backdrop-filter: blur(4px);
+      transition: background 0.1s;
+      cursor: pointer;
+    }
+
+    .result-row:last-child {
+      border-bottom: none;
+    }
+
+    .severity-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.25rem 0.7rem;
+      border-radius: 6px;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      display: inline-block;
+    }
+
+    .sev-info {
+      background: white;
+      color: black;
+    }
+
+    .sev-low {
+      background: #c0c0c0;
+      color: #111;
+    }
+
+    .sev-medium {
+      background: #7a7a7a;
+      color: white;
+    }
+
+    .sev-high {
+      background: #3a3a3a;
+      color: white;
+    }
+
+    .sev-critical {
+      background: #111111;
+      color: white;
+      border: 1px solid white;
+      padding: 0.2rem 0.65rem;
+    }
+
+    .terminal-window {
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 1.2rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      line-height: 1.6;
+      color: #e0e0e0;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 8px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .terminal-line {
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin-bottom: 0.2rem;
+    }
+
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 1rem;
+      background-color: #ccc;
+      vertical-align: middle;
+      margin-left: 2px;
+      animation: blink 1s step-end infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    h1, h2, h3, .syne {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .text-grey {
+      color: #aaa;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+
+    .feature-card {
+      padding: 1.5rem;
+      transition: all 0.2s;
+    }
+
+    .feature-number {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      opacity: 0.2;
+      margin-bottom: 0.75rem;
+      letter-spacing: -0.5px;
+    }
+
+    .feature-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin: 0.5rem 0 0.6rem 0;
+      color: white;
+    }
+
+    .feature-desc {
+      font-size: 0.85rem;
+      color: #b0b0b0;
+      line-height: 1.45;
+    }
+
+    .coffee-panel {
+      padding: 3rem 2rem;
+      text-align: center;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 2rem 0;
+      margin-top: 3rem;
+      text-align: center;
+      font-size: 0.75rem;
+      color: #7a7a7a;
+    }
+
+    .footer-credit {
+      margin-top: 1rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: #6b6b6b;
+    }
+
+    .footer-credit a {
+      color: #aaa;
+      text-decoration: none;
+      border-bottom: 1px dotted #555;
+    }
+
+    .footer-credit a:hover {
+      color: white;
+      border-bottom-color: white;
+    }
+
+    .flex-between {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .flex-center {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .results-area {
+      margin-top: 1.8rem;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.01);
+      backdrop-filter: blur(4px);
+    }
+
+    .empty-results {
+      padding: 2rem;
+      text-align: center;
+      color: #6b6b6b;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+    }
+
+    .error-message {
+      padding: 2rem;
+      text-align: center;
+      color: #f0a0a0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      background: rgba(255, 0, 0, 0.05);
+    }
+
+    section {
+      margin: 5rem 0;
+    }
+
+    .hero {
+      margin-top: 3rem;
+      margin-bottom: 4rem;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 0 1.2rem;
+      }
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+      .hero h1 {
+        font-size: 2.8rem;
+      }
+      nav .flex-between {
+        flex-direction: row;
+      }
+    }
+
+    a {
+      text-decoration: none;
+      color: white;
+    }
+
+    button {
+      background: none;
+      border: none;
+    }
+
+    .star-icon {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+<div class="noise-overlay"></div>
+
+<nav class="glass-nav" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; padding: 0.9rem 0;">
+  <div class="container">
+    <div class="flex-between" style="gap: 1rem;">
+      <div class="logo-area">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="9" stroke="white" stroke-width="1.2" stroke-opacity="0.9" fill="none"/>
+          <path d="M12 4 L12 8 M12 16 L12 20 M4 12 L8 12 M16 12 L20 12" stroke="white" stroke-width="1" stroke-opacity="0.7"/>
+          <circle cx="12" cy="12" r="2" fill="white" fill-opacity="0.8"/>
+          <path d="M12 12 L18 6 M12 12 L6 18 M12 12 L18 18 M12 12 L6 6" stroke="white" stroke-width="0.8" stroke-opacity="0.5"/>
+        </svg>
+        <span style="font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.3rem; letter-spacing: -0.5px;">ReconScan</span>
+      </div>
+      <div class="flex-center" style="gap: 1rem;">
+        <a href="#" class="btn-glass" id="githubNavBtn">GitHub</a>
+        <a href="#" class="btn-glass" id="coffeeNavBtn">Buy me a coffee</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<main style="padding-top: 85px;">
+  <div class="container">
+    <section class="hero">
+      <h1 class="syne" style="font-size: 4.2rem; font-weight: 800; line-height: 1.2; margin-bottom: 1rem;">Passive Recon.<br>AI Clarity.</h1>
+      <p class="text-grey" style="font-size: 1.1rem; max-width: 550px; margin-bottom: 2rem; font-family: 'JetBrains Mono', monospace;">
+        Zero-touch intelligence. AI‑powered security analysis.
+      </p>
+      <div class="flex-center" style="justify-content: flex-start; gap: 1.2rem;">
+        <button class="btn-glass" id="heroScanBtn" style="padding: 0.75rem 2rem;">Start scanning</button>
+        <button class="btn-glass" id="heroDocsBtn" style="padding: 0.75rem 2rem;">Documentation</button>
+      </div>
+      <div style="margin-top: 2.8rem;">
+        <div class="terminal-window glass-card" style="padding: 1.2rem 1.5rem;">
+          <div id="terminalOutput" style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;"></div>
+          <span id="cursorSpan" class="cursor"></span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="glass-card" style="padding: 1.5rem;">
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
+          <div style="flex: 2; min-width: 200px;">
+            <label style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6;">Target domain / IP</label>
+            <input type="text" id="scanInput" class="glass-input" placeholder="example.com" value="google.com">
+          </div>
+          <div>
+            <button id="scanBtn" class="btn-solid-white" style="display: flex; gap: 8px; align-items: center;">Scan →</button>
+          </div>
+        </div>
+        <div id="resultsContainer" class="results-area" style="margin-top: 1.8rem;">
+          <div class="empty-results">← enter a domain and run a scan</div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="syne" style="font-size: 2rem; margin-bottom: 2rem; font-weight: 600;">Capabilities</h2>
+      <div class="features-grid" id="featuresGrid"></div>
+    </section>
+
+    <section>
+      <div class="glass-card coffee-panel">
+        <h2 class="syne" style="font-size: 2.2rem; margin-bottom: 1rem;">Fuel open-source recon</h2>
+        <p style="color: #bbb; max-width: 400px; margin: 0 auto 1.8rem auto; font-size: 0.9rem;">
+          Your support keeps ReconScan sharp, private, and 100% free.
+        </p>
+        <div class="flex-center" style="gap: 1.5rem;">
+          <button class="btn-glass" id="starGitHubBtn">
+            <svg class="star-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="white" stroke="white" stroke-width="1.2"/>
+            </svg>
+            Star on GitHub
+          </button>
+          <button class="btn-glass" id="coffeePanelBtn">Buy me a coffee</button>
+        </div>
+      </div>
+    </section>
+  </div>
+  <footer>
+    <div class="container">
+      <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1.5rem;">
+        <span style="font-family: 'JetBrains Mono';">ReconScan · open source · passive security toolkit · MIT</span>
+        <div class="footer-credit">
+          Designed, developed, and maintained by <a href="https://github.com/aarocy" target="_blank" rel="noopener noreferrer">Aaron</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+</main>
+
+<script>
+  const API = window.RECONSCAN_API ||
+    localStorage.getItem('reconscan_api') ||
+    (location.protocol === 'file:' || location.hostname === 'localhost'
+      ? 'http://localhost:8000'
+      : `${location.protocol}//${location.host}`);
+
+  const MODULE_LABELS = {
+    security_headers: 'Security Headers',
+    ssl_tls: 'SSL / TLS',
+    dns_email: 'DNS & Email Auth',
+    whois: 'WHOIS',
+    robots_sitemap: 'Robots & Sitemap',
+    subdomains: 'Subdomain Enumeration',
+    tech_fingerprint: 'Tech Fingerprint',
+    waf_detection: 'WAF Detection',
+    cors_check: 'CORS Check',
+    cookie_security: 'Cookie Security',
+    js_exposure: 'JS Exposure',
+    directory_exposure: 'Directory Exposure',
+    reputation: 'Reputation',
+  };
+
+  const SEV_CLASS = {
+    critical: 'sev-critical',
+    high: 'sev-high',
+    medium: 'sev-medium',
+    low: 'sev-low',
+    info: 'sev-info',
+  };
+
+  // ----- FEATURES GRID -----
+  const featuresData = [
+    { title: 'Security Headers', desc: 'CSP, HSTS, X-Frame-Options, Referrer-Policy with exact remediation values.' },
+    { title: 'SSL / TLS', desc: 'Certificate validity, expiry countdown, issuer chain, TLS version support.' },
+    { title: 'DNS & Email Auth', desc: 'MX, SPF, DMARC, DKIM records. Catch email spoofing vulnerabilities.' },
+    { title: 'Subdomain Enum', desc: 'Certificate transparency via crt.sh. Passive, zero target interaction.' },
+    { title: 'Tech Fingerprint', desc: 'CMS, frameworks, JS libraries, CDN, server identification.' },
+    { title: 'WAF Detection', desc: 'Cloudflare, AWS WAF, Imperva, Akamai from passive response signatures.' },
+    { title: 'CORS Check', desc: 'Wildcard origins, credential exposure, null origin — all passive vectors.' },
+    { title: 'Cookie Security', desc: 'HttpOnly, Secure, SameSite flags per cookie. CSRF and session risk.' },
+    { title: 'JS Exposure', desc: 'Source maps, hardcoded secrets, API keys in public JS bundles.' },
+    { title: 'Directory Exposure', desc: '.env, .git, admin panels, swagger docs — passive path analysis.' },
+    { title: 'WHOIS', desc: 'Registrar, expiry, nameservers, domain lock status.' },
+    { title: 'Reputation', desc: 'VirusTotal, Google Safe Browsing, PhishTank blacklist checks.' },
+  ];
+
+  const featuresGrid = document.getElementById('featuresGrid');
+  featuresData.forEach((f, i) => {
+    const card = document.createElement('div');
+    card.className = 'glass-card feature-card';
+    card.innerHTML = `
+      <div class="feature-number">${String(i + 1).padStart(2, '0')}</div>
+      <div class="feature-title">${f.title}</div>
+      <div class="feature-desc">${f.desc}</div>
+    `;
+    featuresGrid.appendChild(card);
+  });
+
+  // ----- TYPEWRITER -----
+  const terminalLines = [
+    '> reconscan --passive --target example.com',
+    '> Initializing AI recon engine...',
+    '> [*] Loading 13 security modules',
+    '> [*] Connecting to threat intelligence feeds',
+    '> [✓] Zero packets sent to target',
+    '> Ready. Enter a domain below.',
+  ];
+  const terminalOutputDiv = document.getElementById('terminalOutput');
+  let lineIndex = 0, charIndex = 0;
+
+  function typeNext() {
+    if (lineIndex >= terminalLines.length) return;
+    const line = terminalLines[lineIndex];
+    if (charIndex === 0) {
+      const el = document.createElement('div');
+      el.className = 'terminal-line';
+      el.id = `tl-${lineIndex}`;
+      terminalOutputDiv.appendChild(el);
+    }
+    const el = document.getElementById(`tl-${lineIndex}`);
+    if (!el) return;
+    el.innerText = line.substring(0, charIndex + 1);
+    charIndex++;
+    if (charIndex === line.length) {
+      lineIndex++; charIndex = 0;
+      setTimeout(typeNext, 200);
+    } else {
+      setTimeout(typeNext, 30);
+    }
+  }
+  setTimeout(typeNext, 300);
+
+  // ----- SCAN LOGIC WITH GUARDRAILS -----
+  let scanInterval = null;
+  let aiFullShown = false;
+  let postCompleteAttempts = 0;
+  const MAX_POST_COMPLETE_ATTEMPTS = 8;
+  let lastScannedTarget = null;
+
+  // Sanitize and validate input (no emojis in messages)
+  function sanitizeTarget(raw) {
+    if (!raw || typeof raw !== 'string') return null;
+    
+    let cleaned = raw.trim().toLowerCase();
+    cleaned = cleaned.replace(/^https?:\/\//, '');
+    cleaned = cleaned.replace(/^www\./, '');
+    cleaned = cleaned.replace(/\/+$/, '');
+    cleaned = cleaned.split('/')[0];
+    
+    if (cleaned.length === 0) return null;
+    
+    // IPv4 pattern
+    const ipv4Pattern = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (ipv4Pattern.test(cleaned)) {
+      const octets = cleaned.split('.');
+      if (octets.every(octet => parseInt(octet, 10) >= 0 && parseInt(octet, 10) <= 255)) {
+        return cleaned;
+      }
+      return null;
+    }
+    
+    // Domain: must contain at least one dot, no leading/trailing dots, no consecutive dots
+    if (cleaned.includes('.') && 
+        !cleaned.startsWith('.') && 
+        !cleaned.endsWith('.') && 
+        !cleaned.includes('..')) {
+      const segments = cleaned.split('.');
+      for (const seg of segments) {
+        if (seg.length === 0) return null;
+        if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(seg) && seg.length > 2) {
+          if (!/^[a-z0-9]$/.test(seg) && !/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(seg)) {
+            return null;
+          }
+        }
+      }
+      return cleaned;
+    }
+    
+    return null;
+  }
+
+  function showError(message) {
+    const container = document.getElementById('resultsContainer');
+    container.innerHTML = `<div class="error-message">${message}</div>`;
+    if (scanInterval) clearInterval(scanInterval);
+  }
+
+  function renderResultRows(results, aiSummary) {
+    const container = document.getElementById('resultsContainer');
+    container.innerHTML = '';
+
+    // AI Summary block
+    if (aiSummary && (aiSummary.short_narrative || aiSummary.full_narrative)) {
+      const aiBlock = document.createElement('div');
+      aiBlock.style.cssText = 'padding:1.2rem 1rem; border-bottom:1px solid rgba(255,255,255,0.06); background:rgba(255,255,255,0.01);';
+      aiBlock.innerHTML = `
+        <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;opacity:0.4;margin-bottom:0.6rem;font-family:'JetBrains Mono';">
+          AI Analysis · ${aiSummary.model_used || 'llama-3'}
+        </div>
+        <div id="aiText" style="font-size:0.85rem;color:#bbb;line-height:1.7;white-space:pre-wrap;">${aiSummary.short_narrative || ''}</div>
+        <button id="aiToggle" style="margin-top:0.6rem;font-family:'JetBrains Mono';font-size:0.75rem;color:#888;background:none;border:none;cursor:pointer;padding:0;">
+          ↓ full analysis
+        </button>
+      `;
+      container.appendChild(aiBlock);
+      const aiToggle = document.getElementById('aiToggle');
+      if (aiToggle) {
+        aiToggle.addEventListener('click', () => {
+          aiFullShown = !aiFullShown;
+          const aiTextDiv = document.getElementById('aiText');
+          if (aiTextDiv) {
+            aiTextDiv.innerText = aiFullShown ? (aiSummary.full_narrative || aiSummary.short_narrative) : (aiSummary.short_narrative || '');
+          }
+          aiToggle.innerText = aiFullShown ? '↑ collapse' : '↓ full analysis';
+        });
+      }
+    }
+
+    // Header row
+    const header = document.createElement('div');
+    header.style.cssText = "display:flex;padding:0.7rem 1rem;border-bottom:1px solid rgba(255,255,255,0.08);font-size:0.7rem;font-family:'JetBrains Mono';text-transform:uppercase;letter-spacing:0.5px;opacity:0.4;";
+    header.innerHTML = '<div style="flex:2">Module</div><div style="flex:1">Severity</div><div style="flex:1">Status</div>';
+    container.appendChild(header);
+
+    if (!results || results.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-results';
+      empty.innerText = 'No results yet.';
+      container.appendChild(empty);
+      return;
+    }
+
+    const sorted = [...results].sort((a, b) => {
+      const order = ['critical','high','medium','low','info'];
+      return order.indexOf(a.severity) - order.indexOf(b.severity);
+    });
+
+    sorted.forEach(r => {
+      const wrapper = document.createElement('div');
+      const row = document.createElement('div');
+      row.className = 'result-row';
+      row.innerHTML = `
+        <div style="flex:2;font-family:'JetBrains Mono';font-size:0.85rem;">${MODULE_LABELS[r.module] || r.module}</div>
+        <div style="flex:1;">
+          <span class="severity-badge ${SEV_CLASS[r.severity] || 'sev-info'}">${(r.severity || 'info').toUpperCase()}</span>
+        </div>
+        <div style="flex:1;font-size:0.75rem;opacity:0.5;">${r.status || 'completed'}</div>
+      `;
+      const detail = document.createElement('div');
+      detail.style.cssText = 'display:none;padding:0.8rem 1rem;background:rgba(0,0,0,0.3);border-bottom:1px solid rgba(255,255,255,0.04);';
+      detail.innerHTML = `<pre style="font-family:'JetBrains Mono';font-size:0.75rem;color:#777;line-height:1.6;white-space:pre-wrap;word-break:break-all;">${JSON.stringify(r.raw_data, null, 2)}</pre>`;
+      row.addEventListener('click', () => {
+        const open = detail.style.display === 'block';
+        detail.style.display = open ? 'none' : 'block';
+      });
+      wrapper.appendChild(row);
+      wrapper.appendChild(detail);
+      container.appendChild(wrapper);
+    });
+  }
+
+  async function startScan() {
+    const rawInput = document.getElementById('scanInput').value;
+    const sanitized = sanitizeTarget(rawInput);
+    if (!sanitized) {
+      showError('Invalid domain or IP. Please enter a valid domain (e.g., example.com) or IPv4 address.');
+      return;
+    }
+
+    // Duplicate guard: silently ignore if same as last scanned, keep results intact
+    if (lastScannedTarget === sanitized) {
+      // Do nothing, results remain as they were
+      return;
+    }
+
+    // Update last scanned target
+    lastScannedTarget = sanitized;
+
+    if (scanInterval) clearInterval(scanInterval);
+    postCompleteAttempts = 0;
+    document.getElementById('resultsContainer').innerHTML = '<div class="empty-results">scanning...</div>';
+
+    try {
+      const res = await fetch(`${API}/scans`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target: sanitized })
+      });
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      const { scan_id } = await res.json();
+      console.log('Scan started, ID:', scan_id);
+
+      scanInterval = setInterval(async () => {
+        try {
+          const r = await fetch(`${API}/scans/${scan_id}`);
+          const data = await r.json();
+          console.log('Poll data:', data);
+          if (data.results) {
+            renderResultRows(data.results, data.ai_summary);
+          }
+          if (data.scan && data.scan.status === 'complete') {
+            if (data.ai_summary) {
+              console.log('Scan complete with AI summary, stopping polling');
+              clearInterval(scanInterval);
+            } else {
+              postCompleteAttempts++;
+              console.log(`Scan complete but no AI summary yet (attempt ${postCompleteAttempts}/${MAX_POST_COMPLETE_ATTEMPTS})`);
+              if (postCompleteAttempts >= MAX_POST_COMPLETE_ATTEMPTS) {
+                console.log('Max post-complete attempts reached, stopping polling');
+                clearInterval(scanInterval);
+              }
+            }
+          }
+        } catch (err) {
+          console.warn('Polling error:', err);
+        }
+      }, 2500);
+    } catch (err) {
+      console.error('Start scan error:', err);
+      showError('Could not reach API. Please try again later.');
+    }
+  }
+
+  // Event listeners
+  document.getElementById('scanBtn').addEventListener('click', startScan);
+  document.getElementById('scanInput').addEventListener('keydown', e => { if (e.key === 'Enter') startScan(); });
+  document.getElementById('heroScanBtn').addEventListener('click', () => {
+    document.getElementById('scanInput').scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('scanInput').focus();
+  });
+  document.getElementById('heroDocsBtn').addEventListener('click', () => {
+    window.open('https://github.com/aarocy/ReconScan', '_blank');
+  });
+
+  // Nav & panel buttons
+  document.getElementById('githubNavBtn').href = 'https://github.com/aarocy/ReconScan';
+  document.getElementById('githubNavBtn').target = '_blank';
+  document.getElementById('coffeeNavBtn').href = 'https://buymeacoffee.com/aarocy';
+  document.getElementById('coffeeNavBtn').target = '_blank';
+  document.getElementById('starGitHubBtn').addEventListener('click', () => window.open('https://github.com/aarocy/ReconScan', '_blank'));
+  document.getElementById('coffeePanelBtn').addEventListener('click', () => window.open('https://buymeacoffee.com/aarocy', '_blank'));
+</script>
+</body>
+</html>
