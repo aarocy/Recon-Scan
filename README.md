@@ -1,7 +1,6 @@
 # Recon-Scan
 
-<img width="1366" height="768" alt="image" src="https://github.com/user-attachments/assets/9d0903cd-37f5-4885-9f6e-d8a12eaaeeaf" />
-
+<img width="1349" height="355" alt="image" src="https://github.com/user-attachments/assets/57e9e643-54c8-41cd-9600-973de37c8bb7" />
 
 ReconScan is an open-source passive recon API + frontend for security testing and learning.
 
