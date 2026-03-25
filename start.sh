@@ -13,6 +13,9 @@ fi
 source .venv/bin/activate
 pip install -r requirements.txt
 
-echo "Starting ReconScan local dev server at http://localhost:8000 ..."
+PORT="${PORT:-8000}"
+
+echo "Starting ReconScan local dev server at http://localhost:${PORT} ..."
 echo "USE_ARQ_QUEUE is forced to false for local dev convenience."
-USE_ARQ_QUEUE=false uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+echo "If this port is busy, rerun with PORT=<your_port> ./start.sh"
+USE_ARQ_QUEUE=false uvicorn app.main:app --host 0.0.0.0 --port "${PORT}" --reload
