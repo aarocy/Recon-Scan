@@ -1,18 +1,74 @@
 # ReconScan
 
-ReconScan is an open-source passive recon API + frontend for security testing and learning.
+ReconScan is a open-source passive recon scanner with a FastAPI backend, async worker pipeline, and a single-page frontend.
 
-The project now runs without Supabase, UUID-based user identity, or Stripe dependencies. It uses local SQLite by default so anyone can test it for free.
+The point is fast signal: run a scan, get module-by-module findings, and get an AI summary that can now be exported as a polished PDF report.
+
+## What This Project Is (And Is Not)
+
+- It is passive recon. It does not brute force endpoints, fuzz, or run active exploit logic.
+- It is good for posture snapshots, triage, and reporting.
+- It is not a substitute for full penetration testing.
 
 ## Features
 
-- Passive recon modules (headers, TLS, DNS, WHOIS, subdomains, WAF, CORS, cookies, JS exposure, directory checks, reputation)
-- Async scan execution with ARQ + Redis
-- Automatic fallback to in-process background task if Redis/ARQ is unavailable
-- In-memory per-IP rate limiting with per-minute and per-day limits
-- Optional AI summary generation (OpenRouter, Anthropic, OpenAI)
+- 13 passive modules:
+  - Security headers
+  - SSL/TLS
+  - DNS + email auth (SPF/DMARC/MX)
+  - WHOIS
+  - Robots/sitemap
+  - Subdomain enumeration
+  - Tech fingerprinting
+  - WAF detection
+  - CORS checks
+  - Cookie security checks
+  - JS exposure checks
+  - Directory exposure checks
+  - Reputation checks
+- Async execution with Redis + ARQ worker.
+- Fallback to in-process background execution if queue enqueue fails.
+- Optional AI summary via OpenRouter / Anthropic / OpenAI.
+- PDF report generation from scan + AI summary.
+- Frontend served directly by FastAPI (one URL, one app).
 
-## Quick start
+## One-Command Start (Local Dev)
+
+If you just want it running quickly:
+
+```bash
+./start.sh
+```
+
+What this does:
+
+- Creates `.env` from `.env.example` if missing.
+- Creates `.venv` if needed.
+- Installs dependencies from `requirements.txt`.
+- Starts FastAPI with hot reload on `http://localhost:8000`.
+- Forces `USE_ARQ_QUEUE=false` for easier no-Redis local startup.
+
+Stop with `Ctrl+C`.
+
+## One-Command Start (Docker)
+
+```bash
+./start-docker.sh
+```
+
+What this does:
+
+- Creates `.env` from `.env.example` if missing.
+- Starts API + worker + Redis with Docker Compose.
+
+## Docker Start (Manual)
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+## Local Development (Without Docker)
 
 1. Install dependencies:
 
@@ -32,48 +88,65 @@ cp .env.example .env
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-4. (Optional) Start worker queue if you want Redis + ARQ:
+4. Start worker in another terminal (recommended):
 
 ```bash
 arq app.worker.WorkerSettings
 ```
 
-If ARQ enqueue fails, API automatically falls back to in-process execution.
+5. Open:
 
-5. Open frontend:
+`http://localhost:8000`
 
-- Serve `frontend/index.html` via any static server.
-- By default:
-  - `file://` or `localhost` frontend uses `http://localhost:8000`
-  - hosted frontend uses same-origin API (`window.location.origin`)
-- You can override API base with:
-  - `window.RECONSCAN_API` before script execution, or
-  - `localStorage.setItem("reconscan_api", "https://your-api-host")`
+## PDF Reports
 
-## Configuration
+After a scan completes, click `Download PDF` in the UI.
 
-See `.env.example`:
+Backend endpoint:
 
-- `DATABASE_URL` default `sqlite:///./reconscan.db`
-- `REDIS_URL` default `redis://localhost:6379`
-- `USE_ARQ_QUEUE` default `true`
-- `RATE_LIMIT_PER_MINUTE` default `10`
-- `RATE_LIMIT_PER_DAY` default `200`
-- `ALLOWED_HOSTS` default `localhost,127.0.0.1`
-- `CORS_ALLOWED_ORIGINS` default local dev origins only
-- `ALLOW_BYO_API_KEY` default `false`
-- `OPENROUTER_API_KEY` / `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` optional
-- `VIRUSTOTAL_API_KEY` / `GOOGLE_SAFE_BROWSING_API_KEY` optional
+- `GET /scans/{scan_id}/report.pdf`
+
+The report includes:
+
+- Target and scan metadata
+- AI executive summary (short + full narrative when available)
+- Severity snapshot table
+- Detailed module-by-module findings
 
 ## API
 
 - `GET /health`
 - `POST /scans`
-  - body: `{ "target": "example.com", "byoapi_key": "...", "byoapi_provider": "openrouter" }`
-  - `byoapi_key` is rejected unless `ALLOW_BYO_API_KEY=true`
-  - private, loopback, and reserved targets are blocked
-  - `user_id` is optional for backward compatibility but not required
+  - body example:
+    - `{ "target": "example.com" }`
+    - `{ "target": "example.com", "byoapi_key": "...", "byoapi_provider": "your_provider" }`
+  - notes:
+    - `byoapi_key` rejected unless `ALLOW_BYO_API_KEY=true`
+    - private / loopback / reserved targets are blocked
+    - `user_id` is optional and kept for compatibility
 - `GET /scans/{scan_id}`
+- `GET /scans/{scan_id}/report.pdf`
+
+## Configuration
+
+From `.env.example`:
+
+- `DATABASE_URL` (default: `sqlite:///./reconscan.db`)
+- `REDIS_URL` (default: `redis://localhost:6379`)
+- `USE_ARQ_QUEUE` (default: `true`)
+- `RATE_LIMIT_PER_MINUTE` (default: `10`)
+- `RATE_LIMIT_PER_DAY` (default: `200`)
+- `ALLOWED_HOSTS` (default: `localhost,127.0.0.1`)
+- `CORS_ALLOWED_ORIGINS` (default: local development origins)
+- `ALLOW_BYO_API_KEY` (default: `false`)
+- `OPENROUTER_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` (optional)
+- `VIRUSTOTAL_API_KEY`, `GOOGLE_SAFE_BROWSING_API_KEY` (optional)
+
+## Notes
+
+- If no external AI key is configured, ReconScan stores a local fallback summary.
+- SQLite is the default storage engine for easy local use.
+- This repo is intentionally lightweight and self-host friendly.
 
 ## License
 

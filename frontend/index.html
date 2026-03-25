@@ -440,6 +440,9 @@
           <div>
             <button id="scanBtn" class="btn-solid-white" style="display: flex; gap: 8px; align-items: center;">Scan →</button>
           </div>
+          <div>
+            <button id="downloadPdfBtn" class="btn-glass" style="opacity:0.45;cursor:not-allowed;" disabled>Download PDF</button>
+          </div>
         </div>
         <div id="resultsContainer" class="results-area" style="margin-top: 1.8rem;">
           <div class="empty-results">← enter a domain and run a scan</div>
@@ -581,6 +584,15 @@
   let postCompleteAttempts = 0;
   const MAX_POST_COMPLETE_ATTEMPTS = 8;
   let lastScannedTarget = null;
+  let currentScanId = null;
+
+  function setDownloadButtonState(enabled) {
+    const btn = document.getElementById('downloadPdfBtn');
+    if (!btn) return;
+    btn.disabled = !enabled;
+    btn.style.opacity = enabled ? '1' : '0.45';
+    btn.style.cursor = enabled ? 'pointer' : 'not-allowed';
+  }
 
   // Sanitize and validate input (no emojis in messages)
   function sanitizeTarget(raw) {
@@ -720,6 +732,8 @@
 
     // Update last scanned target
     lastScannedTarget = sanitized;
+    currentScanId = null;
+    setDownloadButtonState(false);
 
     if (scanInterval) clearInterval(scanInterval);
     postCompleteAttempts = 0;
@@ -733,6 +747,7 @@
       });
       if (!res.ok) throw new Error(`API error: ${res.status}`);
       const { scan_id } = await res.json();
+      currentScanId = scan_id;
       console.log('Scan started, ID:', scan_id);
 
       scanInterval = setInterval(async () => {
@@ -744,6 +759,7 @@
             renderResultRows(data.results, data.ai_summary);
           }
           if (data.scan && data.scan.status === 'complete') {
+            setDownloadButtonState(true);
             if (data.ai_summary) {
               console.log('Scan complete with AI summary, stopping polling');
               clearInterval(scanInterval);
@@ -766,8 +782,19 @@
     }
   }
 
+  function downloadScanPdf() {
+    if (!currentScanId) {
+      showError('No completed scan found yet. Run a scan first.');
+      return;
+    }
+
+    const reportUrl = `${API}/scans/${currentScanId}/report.pdf`;
+    window.open(reportUrl, '_blank');
+  }
+
   // Event listeners
   document.getElementById('scanBtn').addEventListener('click', startScan);
+  document.getElementById('downloadPdfBtn').addEventListener('click', downloadScanPdf);
   document.getElementById('scanInput').addEventListener('keydown', e => { if (e.key === 'Enter') startScan(); });
   document.getElementById('heroScanBtn').addEventListener('click', () => {
     document.getElementById('scanInput').scrollIntoView({ behavior: 'smooth' });

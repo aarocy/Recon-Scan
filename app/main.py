@@ -9,11 +9,14 @@ from arq.connections import RedisSettings as ArqRedisSettings
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.responses import Response
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import settings
 from app.database import storage
+from app.pdf_report import build_scan_pdf
 from app.rate_limit import InMemoryRateLimiter
 from app.security import normalize_and_validate_target
 
@@ -159,3 +162,23 @@ async def get_scan(scan_id: str):
         "results": results,
         "ai_summary": summary,
     }
+
+
+@app.get("/scans/{scan_id}/report.pdf")
+async def download_scan_report(scan_id: str):
+    scan = storage.get_scan(scan_id)
+    if not scan:
+        raise HTTPException(status_code=404, detail="Scan not found")
+
+    results = storage.get_results(scan_id)
+    summary = storage.get_summary(scan_id)
+    pdf_data = build_scan_pdf(scan=scan, results=results, summary=summary)
+
+    filename_target = (scan.get("target_domain") or "target").replace("/", "_")
+    headers = {
+        "Content-Disposition": f'attachment; filename="reconscan-{filename_target}-{scan_id[:8]}.pdf"'
+    }
+    return Response(content=pdf_data, media_type="application/pdf", headers=headers)
+
+
+app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
