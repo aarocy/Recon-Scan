@@ -102,6 +102,20 @@ arq app.worker.WorkerSettings
 
 `http://localhost:8000`
 
+## Running Tests
+
+Install test dependencies:
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+Run the full suite:
+
+```bash
+pytest -q
+```
+
 ## PDF Reports
 
 After a scan completes, click `Download PDF` in the UI.
