@@ -2,7 +2,7 @@
 
 <img width="1349" height="355" alt="image" src="https://github.com/user-attachments/assets/57e9e643-54c8-41cd-9600-973de37c8bb7" />
 
-ReconScan is a open-source passive recon scanner with a FastAPI backend, async worker pipeline, and a single-page frontend.
+ReconScan is a open-source passive recon scanner with a FastAPI backend, async worker pipeline, and a single-page frontend. You can check the deployed site at [https://recon-scan.vercel.app/](https://recon-scan.vercel.app/) 
 
 The point is fast signal: run a scan, get module-by-module findings, and get an AI summary that can now be exported as a polished PDF report.
 
