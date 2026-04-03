@@ -158,6 +158,14 @@ From `.env.example`:
 - `OPENROUTER_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` (optional)
 - `VIRUSTOTAL_API_KEY`, `GOOGLE_SAFE_BROWSING_API_KEY` (optional)
 
+## Contributing
+
+Contributions are welcome, especially around passive recon modules, reporting, frontend UX, and test coverage.
+
+Please read the full contribution guidelines before opening a pull request:
+
+[Contributing Guide](./CONTRIBUTING.md)
+
 ## Notes
 
 - If no external AI key is configured, ReconScan stores a local fallback summary.
